@@ -33,8 +33,7 @@ PPMImage read_ppm(const std::string& filename) {   // Function Signature
 
     int r, g, b;                    // Reading Pixel Data (core logic)
     while (file >> r >> g >> b) {
-        // Convert RGB → grayscale (simple average)
-        int gray = (r + g + b) / 3;
+        int gray = (r + g + b) / 3; // Convert RGB → grayscale (simple average)
         img.pixels.push_back(gray);
     }
 
@@ -47,41 +46,54 @@ PPMImage read_ppm(const std::string& filename) {   // Function Signature
                   // Modern C++ uses Return Value Optimization (RVO) ⇢ No performance Penalties.
 }
 
-std::vector<double> normalize(const std::vector<int>& pixels, int max_value) {
-    std::vector<double> out;
-    out.reserve(pixels.size());
+std::vector<double> normalize(const std::vector<int>& pixels, int max_value) { // normalize() Function
+    std::vector<double> out;      // Purpose → Convert [000..255] → [0.0..1.0]
+    out.reserve(pixels.size());   // reserve() is a performance optimization, Avoids repeated reallocations.
 
     for(int p : pixels) {
-        out.push_back(static_cast<double>(p) / max_value);
+        out.push_back(static_cast<double>(p) / max_value); // When pixels = 255 → 1.0, when pixels = 000 → 0.0
     }
     return out;
 }
 
-void write_csv_row(
-    std::ostream& out,
-    const std::string& label,
-    const std::vector<double>& data
-) {
-    out << label;
-    for (double v : data) {
-        out << "," << v;
+// Why std::ostream&? ⌖ This allows output to: std::cout
+                                            // std::ofstream
+                                            // std::stringstream
+void write_csv_row(std::ostream& out, const std::string& label, const std::vector<double>& data) {
+    out << label;             // Writing CSV
+    for (double v : data) {   
+        out << "," << v;      // Produces: center_chiclet,1.0,1.0,1.0,... Perfect for ML datasets
     }
     out << "\n";
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cerr << "Usage: ppm_to_vector <image.ppm> <label>\n;
+int main(int argc, char* argv[]) { // ******** Here at the MAIN part of the code is where everything starts!!! ********
+    if (argc < 4) {                                                // Make sure all the arguments were provided:
+        std::cerr << "Usage: ppm_to_vector <image.ppm> <label> <output.csv>\n"; // → ./ppm_to_vector bottom_chiclet.ppm 3
         return 1;
     }
 
-    std::string ppm_file = argv[1];
-    std::string label = argv[2];
+    std::string ppm_file = argv[1];  // ppm_file = <image.ppm>; For example bottom_chiclet.ppm
+    std::string label = argv[2];     // <label>
+    std::string output_file = argv[3];
 
     try {
+        // Read image
         PPMImage img = read_ppm(ppm_file);
+        
+        // Normalize pixels
         auto vector = normalize(img.pixels, img.max_value);
-        write_csv_row(std::cout, label, vector);
+
+        // Open output file in append mode
+        std::ofstream out(output_file, std::ios::app);
+        if (!out) {
+            std::cerr << "Error: Cannot open output file: " << output_file << "\n";
+            return 1;
+        }
+
+        // Write CSV row
+        write_csv_row(out, label, vector);
+
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
