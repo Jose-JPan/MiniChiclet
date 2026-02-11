@@ -1,33 +1,37 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <sstream>
+#include <iostream>  // std::cout, std::cerr
+#include <fstream>   // File I/O ( std::ifstream )
+#include <vector>    // Dynamic arrays ( std::vector )
+#include <string>    // std::string
+#include <stdexcept> // std::runtime_error
 
-struct PPMImage {
-    int width;
-    int height;
-    int max_value;
-    std::vector<int> pixels; // grayscale or single-channel
+struct PPMImage {         // Plain Data Container
+    int width;               // Image Width Dimension
+    int height;              // Image Height Dimension
+    int max_value;           // Usually 255 in PPM 
+    std::vector<int> pixels; // grayscale or single-channel → pixels flattened grayscale image
+                             // Pixels are stored in 1D, not 2D
+                             // Indexing would be: 
+                             // pixel[y * width * x] * VERY COMMON IN ML Image Processing
 };
 
-PPMImage read_ppm(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file) {
+PPMImage read_ppm(const std::string& filename) {   // Function Signature 
+                                                   // Uses const reference → Avoids copying strings
+    std::ifstream file(filename);        // Takes a filename
+    if (!file) {                         // Checks if open failed                         
         throw std::runtime_error("Cannot open PPM file");
     }
 
     std::string format;
     file >> format;
-    if (format != "P3") {
+    if (format != "P3") {    // P3 = ASCII PPM → Pixels are stored as text: 255 0 0 ...
         throw std::runtime_error("Only P3 PPM format supported");
     }
 
-    PPMImage img;
+    PPMImage img;                   // Reading Image Metadata
     file >> img.width >> img.height;
     file >> img.max_value;
 
-    int r, g, b;
+    int r, g, b;                    // Reading Pixel Data (core logic)
     while (file >> r >> g >> b) {
         // Convert RGB → grayscale (simple average)
         int gray = (r + g + b) / 3;
@@ -38,7 +42,9 @@ PPMImage read_ppm(const std::string& filename) {
         throw std::runtime_error("Pixel count mismatch");
     }
 
-    return img;
+    return img;   // Returns a fully populated PPMImage
+                  // This returns the struct by value
+                  // Modern C++ uses Return Value Optimization (RVO) ⇢ No performance Penalties.
 }
 
 std::vector<double> normalize(const std::vector<int>& pixels, int max_value) {
